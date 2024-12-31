@@ -1,0 +1,19 @@
+node_modules
+.DS_Store
+.build
+.env
+.env*
+
+# Runtime Dat
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Next.ls build output
+.next
+
+# Build output
+dist
+out
+
