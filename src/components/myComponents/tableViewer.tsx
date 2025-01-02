@@ -2,7 +2,7 @@
 
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
-import { Copy, Search, X } from "lucide-react"
+import { Copy, Search, X, MoreVertical, Download } from "lucide-react"
 import {
 	Table,
 	TableBody,
@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useDebounce } from "@/hooks/use-debounce"
 import { exampleQueries } from "@/queries/example"
+import * as XLSX from "xlsx"
 
 interface TableViewerProps {
 	data?: Record<string, string>
@@ -306,6 +307,7 @@ const TableViewer = ({
 				options.styling?.cellPadding || "px-4 py-2",
 				options.styling?.cellBorder ||
 					"border-b border-r border-gray-200 dark:border-gray-800 last:border-r-0",
+				"max-w-[200px] overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
 				options.styling?.zebraStriping
 					? "bg-transparent"
 					: "bg-white dark:bg-zinc-950",
@@ -336,6 +338,43 @@ const TableViewer = ({
 					options.styling?.textPosition?.custom?.finalRow &&
 					`text-${options.styling.textPosition.custom.finalRow}`
 			),
+		mobileCard: cn(
+			"block md:hidden mb-4 rounded-lg border border-gray-200 dark:border-gray-800",
+			"bg-white dark:bg-zinc-950 relative",
+			"hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors",
+			"shadow-sm hover:shadow-md transition-shadow",
+			"grid grid-cols-[140px,1fr]"
+		),
+		mobileCardHeaders: cn(
+			"col-span-2 grid grid-cols-subgrid px-4 pt-4",
+			"border-b border-gray-200 dark:border-gray-800",
+			"pb-2"
+		),
+		mobileCardContent: cn("contents"),
+		mobileCardLeft: cn(
+			"bg-gray-50 dark:bg-gray-900",
+			"border-r border-gray-200 dark:border-gray-800",
+			"grid content-start gap-y-2 px-4 py-4"
+		),
+		mobileCardRight: cn("grid content-start gap-y-2 px-4 py-4"),
+		mobileCardHeader: cn(
+			"text-sm font-semibold text-gray-500 dark:text-gray-400",
+			"text-center"
+		),
+		mobileCardItem: cn("min-h-[24px] max-h-[192px]", "flex items-center"),
+		mobileCardLabel: cn(
+			"text-base font-medium text-gray-500 dark:text-gray-400",
+			"text-center"
+		),
+		mobileCardValue: cn(
+			"text-base font-semibold break-words",
+			"text-gray-900 dark:text-gray-100 text-center"
+		),
+		mobileCardIndex: cn(
+			"absolute top-2 right-2 w-7 h-7 flex items-center justify-center",
+			"rounded-full bg-gray-100 dark:bg-gray-800",
+			"text-sm font-medium text-gray-600 dark:text-gray-400"
+		),
 	}
 
 	const handleCopyTable = async (entireTable = false) => {
@@ -418,38 +457,72 @@ const TableViewer = ({
 		return values.join(".")
 	}
 
+	const handleExcelDownload = (format: "csv" | "xlsx") => {
+		const headers = ["Container", "Name", "Value"]
+		const rows = allRows.map((row) => [row.container, row.name, row.value])
+
+		if (format === "csv") {
+			const csvContent = [
+				headers.join(","),
+				...rows.map((row) =>
+					row
+						.map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+						.join(",")
+				),
+			].join("\n")
+
+			const blob = new Blob([csvContent], {
+				type: "text/csv;charset=utf-8;",
+			})
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement("a")
+			link.setAttribute("href", url)
+			link.setAttribute("download", "table-data.csv")
+			document.body.appendChild(link)
+			link.click()
+			document.body.removeChild(link)
+		} else {
+			const wb = XLSX.utils.book_new()
+			const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+			XLSX.utils.book_append_sheet(wb, ws, "Data")
+			XLSX.writeFile(wb, "table-data.xlsx")
+		}
+	}
+
 	return (
 		<div className={cn("space-y-4 max-w-screen-md mx-auto", className)}>
-			<div className="flex justify-between align-middle items-center gap-4">
+			<div className="space-y-4 lg:space-y-0 lg:flex lg:justify-between lg:items-center">
 				{customOptions.filters?.search && (
-					<div className="relative flex-1">
-						<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-						<Input
-							placeholder={
-								customOptions.filters.searchPlaceholder ||
-								"Search fields..."
-							}
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							className={cn(
-								"pl-8",
-								searchTerm.length > 0 && "pr-8"
+					<div className="w-full lg:max-w-md">
+						<div className="relative">
+							<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+							<Input
+								placeholder={
+									customOptions.filters.searchPlaceholder ||
+									"Search fields..."
+								}
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								className={cn(
+									"pl-8",
+									searchTerm.length > 0 && "pr-8"
+								)}
+								disabled={isLoading}
+							/>
+							{searchTerm.length > 0 && (
+								<button
+									onClick={() => setSearchTerm("")}
+									className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+									aria-label="Clear search">
+									<X className="h-4 w-4" />
+								</button>
 							)}
-							disabled={isLoading}
-						/>
-						{searchTerm.length > 0 && (
-							<button
-								onClick={() => setSearchTerm("")}
-								className="absolute right-2 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
-								aria-label="Clear search">
-								<X className="h-4 w-4" />
-							</button>
-						)}
+						</div>
 					</div>
 				)}
 				{(customOptions.buttons?.copyTable ||
 					customOptions.buttons?.copyColumn) && (
-					<div className="flex gap-2">
+					<div className="flex flex-wrap gap-2 justify-end">
 						{customOptions.buttons?.copyTable && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -504,72 +577,172 @@ const TableViewer = ({
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="outline"
+									size="sm"
+									className="px-2"
+									disabled={isLoading}>
+									<MoreVertical className="h-4 w-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								<DropdownMenuItem
+									onClick={() => handleExcelDownload("xlsx")}>
+									<Download className="h-4 w-4 mr-2" />
+									Download Excel (.xlsx)
+								</DropdownMenuItem>
+								<DropdownMenuItem
+									onClick={() => handleExcelDownload("csv")}>
+									<Download className="h-4 w-4 mr-2" />
+									Download CSV
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
 				)}
 			</div>
-			<div className={tableStyles.wrapper}>
-				<Table className={tableStyles.table}>
-					<TableHeader>
-						<TableRow>
-							<TableHead className={tableStyles.headerCell(0)}>
-								Container
-							</TableHead>
-							<TableHead className={tableStyles.headerCell(1)}>
-								Name
-							</TableHead>
-							<TableHead className={tableStyles.headerCell(2)}>
-								Value
-							</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{isLoading ? (
+			<div className="hidden md:block">
+				<div className={tableStyles.wrapper}>
+					<Table className={tableStyles.table}>
+						<TableHeader>
 							<TableRow>
-								<TableCell colSpan={3} className="h-24">
-									<div className="flex items-center justify-center">
-										<div className="animate-pulse flex space-x-4 items-center text-muted-foreground">
-											<div className="h-2 w-2 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-											<div className="h-2 w-2 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-											<div className="h-2 w-2 bg-current rounded-full animate-bounce"></div>
-											<span className="ml-2">
-												Loading data...
-											</span>
-										</div>
-									</div>
-								</TableCell>
+								<TableHead
+									className={tableStyles.headerCell(0)}>
+									Container
+								</TableHead>
+								<TableHead
+									className={tableStyles.headerCell(1)}>
+									Name
+								</TableHead>
+								<TableHead
+									className={tableStyles.headerCell(2)}>
+									Value
+								</TableHead>
 							</TableRow>
-						) : rows.length > 0 ? (
-							rows.map((row, index) => (
-								<TableRow
-									key={getRowKey(row)}
-									className={tableStyles.row(
-										index,
-										index === rows.length - 1
-									)}>
-									<TableCell className={tableStyles.cell(0)}>
-										{row.container}
-									</TableCell>
-									<TableCell className={tableStyles.cell(1)}>
-										{row.name}
-									</TableCell>
-									<TableCell className={tableStyles.cell(2)}>
-										{row.value}
+						</TableHeader>
+						<TableBody>
+							{isLoading ? (
+								<TableRow>
+									<TableCell colSpan={3} className="h-24">
+										<div className="flex items-center justify-center">
+											<div className="animate-pulse flex space-x-4 items-center text-muted-foreground">
+												<div className="h-2 w-2 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+												<div className="h-2 w-2 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+												<div className="h-2 w-2 bg-current rounded-full animate-bounce"></div>
+												<span className="ml-2">
+													Loading data...
+												</span>
+											</div>
+										</div>
 									</TableCell>
 								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={3}
-									className="h-24 text-center">
-									No data
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
+							) : rows.length > 0 ? (
+								rows.map((row, index) => (
+									<TableRow
+										key={getRowKey(row)}
+										className={tableStyles.row(
+											index,
+											index === rows.length - 1
+										)}>
+										<TableCell
+											className={tableStyles.cell(0)}>
+											{row.container}
+										</TableCell>
+										<TableCell
+											className={tableStyles.cell(1)}>
+											{row.name}
+										</TableCell>
+										<TableCell
+											className={tableStyles.cell(2)}>
+											{row.value}
+										</TableCell>
+									</TableRow>
+								))
+							) : (
+								<TableRow>
+									<TableCell
+										colSpan={3}
+										className="h-24 text-center">
+										No data
+									</TableCell>
+								</TableRow>
+							)}
+						</TableBody>
+					</Table>
+				</div>
 			</div>
-
+			<div className="md:hidden space-y-4">
+				{isLoading ? (
+					<div className={tableStyles.mobileCard}>
+						<div className="flex items-center justify-center h-24">
+							<div className="animate-pulse flex space-x-4 items-center text-muted-foreground">
+								<div className="h-2 w-2 bg-current rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+								<div className="h-2 w-2 bg-current rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+								<div className="h-2 w-2 bg-current rounded-full animate-bounce"></div>
+								<span className="ml-2">Loading data...</span>
+							</div>
+						</div>
+					</div>
+				) : rows.length > 0 ? (
+					rows.map((row, index) => (
+						<div
+							key={getRowKey(row)}
+							className={tableStyles.mobileCard}>
+							<div className={tableStyles.mobileCardHeaders}>
+								<div className={tableStyles.mobileCardHeader}>
+									KEY
+								</div>
+								<div className={tableStyles.mobileCardHeader}>
+									VALUE
+								</div>
+							</div>
+							<div className={tableStyles.mobileCardLeft}>
+								{["Container", "Name", "Value"].map((label) => (
+									<div
+										key={label}
+										className={tableStyles.mobileCardItem}>
+										<span
+											className={
+												tableStyles.mobileCardLabel
+											}>
+											{label}
+										</span>
+									</div>
+								))}
+							</div>
+							<div className={tableStyles.mobileCardRight}>
+								{["Container", "Name", "Value"].map(
+									(value, i) => (
+										<div
+											key={i}
+											className={
+												tableStyles.mobileCardItem
+											}>
+											<span
+												className={
+													tableStyles.mobileCardValue
+												}>
+												{value}
+											</span>
+										</div>
+									)
+								)}
+							</div>
+							<span className={tableStyles.mobileCardIndex}>
+								{startIndex + index + 1}
+							</span>
+						</div>
+					))
+				) : (
+					<div className={tableStyles.mobileCard}>
+						<div className="text-center py-8 text-gray-500">
+							No data
+						</div>
+					</div>
+				)}
+			</div>
 			{shouldPaginate && totalPages > 1 && (
 				<Pagination>
 					<PaginationContent
