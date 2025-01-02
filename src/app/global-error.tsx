@@ -1,23 +1,40 @@
-"use client";
+"use client"
 
-import * as Sentry from "@sentry/nextjs";
-import NextError from "next/error";
-import { useEffect } from "react";
+import { useEffect } from "react"
+import { Inter } from "next/font/google"
 
-export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
-  useEffect(() => {
-    Sentry.captureException(error);
-  }, [error]);
+const inter = Inter({ subsets: ["latin"] })
 
-  return (
-    <html>
-      <body>
-        {/* `NextError` is the default Next.js error page component. Its type
-        definition requires a `statusCode` prop. However, since the App Router
-        does not expose status codes for errors, we simply pass 0 to render a
-        generic error message. */}
-        <NextError statusCode={0} />
-      </body>
-    </html>
-  );
+export default function GlobalError({
+	error,
+	reset,
+}: {
+	error: Error & { digest?: string }
+	reset: () => void
+}) {
+	useEffect(() => {
+		console.error(error)
+	}, [error])
+
+	return (
+		<html lang="en">
+			<body className={inter.className}>
+				<main className="flex min-h-screen flex-col items-center justify-center p-4">
+					<div className="text-center">
+						<h2 className="text-2xl font-bold mb-4">
+							Something went wrong!
+						</h2>
+						<p className="text-gray-600 mb-4">
+							{error.message || "An unexpected error occurred"}
+						</p>
+						<button
+							onClick={reset}
+							className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
+							Try again
+						</button>
+					</div>
+				</main>
+			</body>
+		</html>
+	)
 }

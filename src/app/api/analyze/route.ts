@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server"
 import { AnalyzeDocumentCommand, FeatureType } from "@aws-sdk/client-textract"
 import { client } from "@/lib/textract"
-import { testAgencyQueries } from "@/app/apiTester/tabs/testAgencyQueries"
+import { testAgencyQueries } from "@/app/(pages)/apiTester/tabs/testAgencyQueries"
 
 // Handle GET requests for response unification
 export async function GET(request: Request) {

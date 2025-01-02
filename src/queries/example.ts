@@ -27,7 +27,7 @@ import { Query, QueryWithNames } from "@/types"
  *==================================================
  */
 
-export const exampleQueries: (QueryWithNames | Query)[] = [
+export const exampleQueries: QueryWithNames[] = [
 	// When Query sheet is "completed", remove Query from the type options above and change Verified to true, for Validated Verified and Required Alias.
 	/*
 	 *==================================================
@@ -78,14 +78,6 @@ export const exampleQueries: (QueryWithNames | Query)[] = [
 		Marker: "",
 		Text: "",
 		Alias: "alotChecking",
-		Name: "alotChecking",
-		Container: "deduction",
-		Verified: false,
-	},
-	{
-		Marker: "",
-		Text: "",
-		Alias: "deductions.alotChecking",
 		Name: "alotChecking",
 		Container: "deduction",
 		Verified: false,

@@ -106,7 +106,7 @@ export function AgencyForm({
 	type FormData = z.infer<typeof formSchema>
 
 	const form = useForm<FormData>({
-		resolver: zodResolver(formSchema),
+		// resolver: zodResolver(formSchema),
 		defaultValues: {},
 		mode: "onChange",
 	})
@@ -165,7 +165,7 @@ export function AgencyForm({
 	return (
 		<>
 			{showConfetti && <Confetti />}
-			<div className="bg-zinc-50 w-full h-fit p-6 rounded-lg shadow-sm border border-zinc-200">
+			<div className="bg-zinc-50 mt-8 w-full h-fit p-6 rounded-lg shadow-sm border border-zinc-200">
 				<h2 className="text-2xl font-bold text-zinc-900">
 					Agency Form {selectedAgency && `- ${selectedAgency}`}
 				</h2>

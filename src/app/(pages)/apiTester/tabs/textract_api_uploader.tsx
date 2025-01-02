@@ -14,7 +14,6 @@ import { analyzeDocument } from "@/functions/analizeDocument"
 import { extractQueries } from "@/functions/extractQueries"
 import { Loader2 } from "lucide-react"
 import { AgencyForm } from "./AgencyForm"
-import { testAgencyQueries } from "@/app/apiTester/tabs/testAgencyQueries"
 import { agencyOptions } from "@/types/zodQuerySchemaMaster"
 import {
 	Select,
@@ -29,6 +28,13 @@ import { useDropzone } from "react-dropzone"
 import { Query, QueryWithNames } from "@/types"
 import { useToast } from "@/hooks/use-toast"
 import { Agency } from "@/types/FileTypes"
+import { convertPdfToBase64 } from "@/utils/pdfToBase64"
+import TableViewer from "@/components/myComponents/tableViewer"
+import { exampleQueries } from "@/queries/example"
+import { doeQueries } from "@/queries/doe-queries"
+import { tvaQueries } from "@/queries/tva-queries"
+import { gsaQueries } from "@/queries/gsa-queries"
+import { uspsQueries } from "@/queries/usps-queries"
 
 const formSchema = z.object({
 	agency: z.string({
@@ -42,11 +48,14 @@ const formSchema = z.object({
 					.nullable()
 					.refine(
 						(files) => files && files.length > 0,
-						"Image is required."
+						"File is required."
 					)
 					.refine(
-						(files) => files && files[0].type.startsWith("image/"),
-						"File must be an image."
+						(files) =>
+							files &&
+							(files[0].type.startsWith("image/") ||
+								files[0].type === "application/pdf"),
+						"File must be an image or PDF."
 					)
 					.refine(
 						(files) => files && files[0].size <= 5000000,
@@ -67,7 +76,7 @@ const TextractUploader = () => {
 	const [loadingState, setLoadingState] = useState<LoadingState>("idle")
 	const { toast } = useToast()
 	const form = useForm<FormValues>({
-		resolver: zodResolver(formSchema),
+		// resolver: zodResolver(formSchema),
 		defaultValues: {
 			agency: "",
 			file: null,
@@ -78,7 +87,10 @@ const TextractUploader = () => {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
 	const { getRootProps, getInputProps, isDragActive } = useDropzone({
-		accept: { "image/*": [".jpeg", ".png"] },
+		accept: {
+			"image/*": [".jpeg", ".png"],
+			"application/pdf": [".pdf"],
+		},
 		maxFiles: 1,
 		onDrop: (acceptedFiles) => {
 			const file = acceptedFiles[0]
@@ -156,7 +168,13 @@ const TextractUploader = () => {
 				console.log(`Processing batch ${i / 15 + 1}:`, batchQueries) // Debug log
 
 				const formData = new FormData()
-				formData.append("file", data.file[0])
+				// convert the file to base64 if it is a pdf, and append it to the form data
+				if (data.file[0].type !== "application/pdf") {
+					formData.append("file", data.file[0])
+				} else {
+					const blob = await convertPdfToBase64(data.file[0])
+					if (blob) formData.append("file", blob)
+				}
 				formData.append("startIndex", i.toString())
 				formData.append(
 					"endIndex",
@@ -275,7 +293,14 @@ const TextractUploader = () => {
 				return (
 					<div className="flex items-center gap-2 text-amber-600">
 						<Loader2 className="h-4 w-4 animate-spin" />
-						<span>Processing image...</span>
+						<span>
+							Processing{" "}
+							{form.getValues("file")?.[0]?.type ===
+							"application/pdf"
+								? "PDF"
+								: "image"}
+							...
+						</span>
 					</div>
 				)
 			case "populating form":
@@ -316,7 +341,16 @@ const TextractUploader = () => {
 				return usdaQueries
 			case "dod":
 				return dodQueries
-			// ... add other cases
+			case "doe":
+				return doeQueries
+			case "gsa":
+				return gsaQueries
+			case "tva":
+				return tvaQueries
+			case "usps":
+				return uspsQueries
+			case "all":
+				return exampleQueries
 			default:
 				return []
 		}
@@ -333,8 +367,8 @@ const TextractUploader = () => {
 			<p className="text-zinc-600 mb-4 md:w-3/4 text-left mr-auto">
 				Upload an earnings & leave statement and we will extract the
 				data and fill out whatever values we can for you. Please upload
-				a digital copy if possible in image format. PDF's are not yet
-				supported but will be supported soon.
+				a digital copy if possible in image format. PDF support is
+				currently in testing.
 			</p>
 			<Form {...form}>
 				<form
@@ -466,8 +500,9 @@ const TextractUploader = () => {
 																</p>
 																<p className="text-zinc-400 text-sm mt-2">
 																	Supports
-																	PNG, JPG up
-																	to 5MB
+																	PNG, JPG,
+																	PDF up to
+																	5MB
 																</p>
 															</>
 														)}
@@ -508,6 +543,29 @@ const TextractUploader = () => {
 				</form>
 			</Form>
 			<div className="mt-8">
+				<TableViewer
+					data={formData || {}}
+					isLoading={
+						loadingState === "processing" ||
+						loadingState === "loading"
+					}
+					options={{
+						buttons: {
+							copyTable: true,
+							copyColumn: true,
+							copyColumnIndex: 1,
+						},
+						pagination: {
+							enabled: true,
+							maxRows: 10,
+						},
+						filters: {
+							search: true,
+							searchPlaceholder: "Search fields or values...",
+							searchDebounce: 300,
+						},
+					}}
+				/>
 				<AgencyForm
 					onSubmit={handleFormSubmit}
 					defaultValues={formData}

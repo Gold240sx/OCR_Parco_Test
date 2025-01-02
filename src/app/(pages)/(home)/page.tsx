@@ -1,8 +1,6 @@
-"use client"
-import React, { useState } from "react"
+import React from "react"
 import Image from "next/image"
-import { QueryConverter } from "../../functions/queryConverter"
-import Dropzone from "react-dropzone"
+import { QueryConverter } from "@/functions/queryConverter"
 import { Button } from "@/components/ui/button"
 import {
 	Card,
@@ -11,29 +9,15 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select"
-import { toast } from "sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
 	Table,
 	TableBody,
-	TableCaption,
 	TableCell,
 	TableHead,
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table"
-import { FileDocRenameType, AccountType } from "@/types/FileTypes"
 import AIFileRename from "./tabs/ai-file-rename"
 import FileRenameHeader from "./tabs/fileRenameHeader"
 import ManualRenameSection from "./tabs/manualRenameSection"
